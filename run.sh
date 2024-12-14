@@ -33,12 +33,13 @@ main() {
 
     touch .gitignore .env
     gitignore
+    createStructure
 
     python3 -m venv .venv
     source .venv/bin/activate
     pip install --upgrade pip setuptools wheel
     pip install --upgrade pip
-    pip install robotframework robotframework-pythonlibcore openpyxcl python-docx pypdf2 pandas reportlab
+    pip install robotframework robotframework-pythonlibcore openpyxl python-docx pypdf2 pandas reportlab
 
     echo -e "${GREEN}🎉 Project is ready! run 'robot tests/file_analysis.robot' to start.${NC}"
 }
