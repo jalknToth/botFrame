@@ -1,4 +1,4 @@
-# Robot framework Project
+# Robot framework
 
 ## Installation
 
