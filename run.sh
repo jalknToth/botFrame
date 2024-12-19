@@ -1,10 +1,12 @@
+#!/bin/bash
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-set -e
+set -e 
 
-command -v python3 >/dev/null 2>&1 || { echo >&2 "Python3 is required but not installed.  Aborting."; exit 1; }
+command -v python3 >/dev/null 2>&1 || { echo >&2 "Python3 is required but not installed. Aborting."; exit 1; }
 command -v virtualenv >/dev/null 2>&1 || { python3 -m pip install --user virtualenv; }
 
 gitignore() {
@@ -19,18 +21,17 @@ EOL
 }
 
 createStructure(){
-    mkdir -p inputs/{excel,word,pdf} outputs/{reports,processed} tests source
-
+    mkdir -p inputs/{excel,word,pdf} outputs/{reports,processed} tests resources
     touch tests/file_analysis.robot
-    touch source/excel_analyzer.py
-    touch source/word_analyzer.py
-    touch source/pdf_analyzer.py
-    touch source/report_generator.py
+    touch resources/excel_analyzer.py
+    touch resources/word_analyzer.py
+    touch resources/pdf_analyzer.py
+    touch resources/report_generator.py
 }
 
 createExcelAnalyzer() {
     echo -e "${YELLOW}🚀 Creating Excel Analyzer${NC}"
-    cat > source/excel_analyzer.py << EOL
+    cat > resources/excel_analyzer.py << EOL
 import pandas as pd
 import openpyxl
 
@@ -69,7 +70,7 @@ EOL
 
 createWordAnalyzer() {
     echo -e "${YELLOW}🚀 Creating Word Analyzer${NC}"
-    cat > source/word_analyzer.py << EOL
+    cat > resources/word_analyzer.py << EOL
 from docx import Document
 
 def analyze_word_file(file_path):
@@ -105,7 +106,7 @@ EOL
 
 createPDFAnalyzer() {
     echo -e "${YELLOW}🚀 Creating PDF Analyzer${NC}"
-    cat > source/pdf_analyzer.py << EOL
+    cat > resources/pdf_analyzer.py << EOL
 import PyPDF2
 
 def analyze_pdf_file(file_path):
@@ -139,7 +140,7 @@ EOL
 
 createReportGenerator() {
     echo -e "${YELLOW}🚀 Creating Report Generator${NC}"
-    cat > source/report_generator.py << EOL
+    cat > resources/report_generator.py << EOL
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
@@ -178,34 +179,41 @@ Resource          ../resources/pdf_analyzer.py
 Resource          ../resources/report_generator.py
 
 *** Variables ***
-${INPUT_DIR}      ${EXECDIR}/inputs
-${OUTPUT_DIR}     ${EXECDIR}/outputs
+${input_excel_dir}    /inputs/excel
+${input_word_dir}     /inputs/word
+${input_pdf_dir}      /inputs/pdf
+${output_report_path} /outputs/reports/comprehensive_report.pdf
+@{analysis_results}    # List to store analysis results
+
 
 *** Test Cases ***
 Analyze Excel Files
-    @{excel_files}=    List Files In Directory    ${INPUT_DIR}/excel    *.xlsx
+    @{excel_files}=    List Files In Directory    ${input_excel_dir}    *.xlsx
     FOR    ${file}    IN    @{excel_files}
-        ${analysis}=    Analyze Excel File    ${file}
-        Log Dictionary    ${analysis}
+        ${excel_analysis}=    Analyze Excel File    ${file}  # Assuming Analyze Excel File returns a dictionary
+        Append To List    ${analysis_results}    ${excel_analysis}
+        Log Dictionary    ${excel_analysis}
     END
 
 Analyze Word Documents
-    @{word_files}=    List Files In Directory    ${INPUT_DIR}/word    *.docx
+    @{word_files}=    List Files In Directory    ${input_word_dir}    *.docx
     FOR    ${file}    IN    @{word_files}
-        ${analysis}=    Analyze Word File    ${file}
-        Log Dictionary    ${analysis}
+        ${word_analysis}=    Analyze Word File    ${file} # Assuming Analyze Word File returns a dictionary
+        Append To List    ${analysis_results}    ${word_analysis}
+        Log Dictionary    ${word_analysis}
     END
 
 Analyze PDF Files
-    @{pdf_files}=    List Files In Directory    ${INPUT_DIR}/pdf    *.pdf
+    @{pdf_files}=    List Files In Directory    ${input_pdf_dir}    *.pdf
     FOR    ${file}    IN    @{pdf_files}
-        ${analysis}=    Analyze PDF File    ${file}
-        Log Dictionary    ${analysis}
+        ${pdf_analysis}=    Analyze PDF File    ${file} # Assuming Analyze PDF File returns a dictionary
+        Append To List    ${analysis_results}    ${pdf_analysis}
+        Log Dictionary    ${pdf_analysis}
     END
 
+
 Generate Comprehensive Report
-    # Collect analyses from previous test cases
-    Generate Analysis Report    ${OUTPUT_DIR}/reports/comprehensive_report.pdf
+    Generate Analysis Report    ${output_report_path}    ${analysis_results}  # Pass the collected results
 EOL
 }
 
@@ -229,7 +237,7 @@ main() {
     source .venv/bin/activate
     pip install --upgrade pip setuptools wheel
     pip install --upgrade pip
-    pip install robotframework robotframework-pythonlibcore openpyxl python-docx pypdf2 pandas reportlab
+    pip install robotframework robotframework-pythonlibcore openpyxl python-docx pypdf2 pandas reportlab docx
 
     echo -e "${GREEN}🎉 Project is ready! run 'robot tests/file_analysis.robot' to start.${NC}"
 }
